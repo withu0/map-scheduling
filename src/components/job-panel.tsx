@@ -1,80 +1,124 @@
 "use client";
 
-import * as React from 'react';
-import type { Job, MapboxRoute } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Hourglass, Loader, Route as RouteIcon, Bot, ArrowLeftRight, PlusCircle } from 'lucide-react';
-import { JobCard } from './job-card';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import * as React from "react";
+import type { Job, MapboxRoute } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Hourglass,
+  Loader,
+  Route as RouteIcon,
+  Bot,
+  PlusCircle,
+} from "lucide-react";
+import { JobCard } from "./job-card";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 interface JobPanelProps {
   jobs: Job[];
   route: MapboxRoute | null;
-  status: 'idle' | 'loading' | 'optimizing';
+  status: "idle" | "loading" | "optimizing";
   onOptimize: () => void;
-  routeName: 'A' | 'B';
-  onSwitchRoute: () => void;
   candidateJobs: Job[];
   onAddJob: (jobId: string) => void;
+  selectedDate?: string;
+  onJobClick?: (job: Job) => void;
 }
 
-export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchRoute, candidateJobs, onAddJob }: JobPanelProps) {
+export function JobPanel({
+  jobs,
+  route,
+  status,
+  onOptimize,
+  candidateJobs,
+  onAddJob,
+  selectedDate,
+  onJobClick,
+}: JobPanelProps) {
   const totalDistance = route ? route.distance / 1000 : 0; // meters to km
   const totalDuration = route ? route.duration / 60 : 0; // seconds to minutes
-  const [selectedCandidate, setSelectedCandidate] = React.useState('');
+  const [selectedCandidate, setSelectedCandidate] = React.useState("");
 
   const handleAddJob = () => {
     if (selectedCandidate) {
       onAddJob(selectedCandidate);
-      setSelectedCandidate('');
+      setSelectedCandidate("");
     }
   };
 
-  const jobIds = React.useMemo(() => jobs.map(j => j.id), [jobs]);
+  const jobIds = React.useMemo(() => jobs.map((j) => j.id), [jobs]);
 
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold font-headline">Job Itinerary (Route {routeName})</h2>
-            <p className="text-sm text-muted-foreground">Your daily schedule and optimized route.</p>
+            <h2 className="text-xl font-semibold font-headline">
+              Job Itinerary
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {selectedDate
+                ? `Schedule for ${selectedDate}`
+                : "Your daily schedule and optimized route."}
+            </p>
           </div>
-          <Button variant="outline" size="icon" onClick={onSwitchRoute} className="hidden lg:flex">
-            <ArrowLeftRight className="w-4 h-4" />
-            <span className="sr-only">Switch Route</span>
-          </Button>
         </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-3">
-          <SortableContext items={jobIds} strategy={verticalListSortingStrategy}>
+          <SortableContext
+            items={jobIds}
+            strategy={verticalListSortingStrategy}
+          >
             {jobs.map((job, index) => (
-              <JobCard key={job.id} job={job} index={index} />
+              <JobCard 
+                key={job.id} 
+                job={job} 
+                index={index} 
+                onJobClick={onJobClick}
+              />
             ))}
           </SortableContext>
         </div>
       </ScrollArea>
-      
+
       <div className="p-4 border-t">
         <h3 className="mb-2 font-semibold text-md">Add a Job</h3>
         <div className="flex gap-2">
-          <Select value={selectedCandidate} onValueChange={setSelectedCandidate}>
+          <Select
+            value={selectedCandidate}
+            onValueChange={setSelectedCandidate}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a location..." />
             </SelectTrigger>
             <SelectContent>
-              {candidateJobs.map(job => (
-                <SelectItem key={job.id} value={job.id}>{job.customerName}</SelectItem>
+              {candidateJobs.map((job) => (
+                <SelectItem key={job.id} value={job.id}>
+                  {job.customerName}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleAddJob} disabled={!selectedCandidate || status !== 'idle'} variant="outline" size="icon">
+          <Button
+            onClick={handleAddJob}
+            disabled={!selectedCandidate || status !== "idle"}
+            variant="outline"
+            size="icon"
+          >
             <PlusCircle className="w-5 h-5" />
             <span className="sr-only">Add Job</span>
           </Button>
@@ -89,7 +133,11 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
               <RouteIcon className="w-4 h-4" /> Total Distance
             </span>
             <span className="font-medium">
-              {status === 'loading' ? <Loader className="animate-spin w-4 h-4" /> : `${totalDistance.toFixed(1)} km`}
+              {status === "loading" ? (
+                <Loader className="animate-spin w-4 h-4" />
+              ) : (
+                `${totalDistance.toFixed(1)} km`
+              )}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
@@ -97,18 +145,26 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
               <Hourglass className="w-4 h-4" /> Total Travel Time
             </span>
             <span className="font-medium">
-              {status === 'loading' ? <Loader className="animate-spin w-4 h-4" /> : `${Math.round(totalDuration)} mins`}
+              {status === "loading" ? (
+                <Loader className="animate-spin w-4 h-4" />
+              ) : (
+                `${Math.round(totalDuration)} mins`
+              )}
             </span>
           </div>
         </div>
         <Separator className="my-4" />
         <Button
           onClick={onOptimize}
-          disabled={status !== 'idle' || jobs.length < 2}
+          disabled={status !== "idle" || jobs.length < 2}
           className="w-full font-semibold bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent"
         >
-          {status === 'optimizing' && <Bot className="w-5 h-5 mr-2 animate-pulse" />}
-          {status === 'optimizing' ? 'Optimizing with AI...' : `Optimize Route ${routeName} with AI`}
+          {status === "optimizing" && (
+            <Bot className="w-5 h-5 mr-2 animate-pulse" />
+          )}
+          {status === "optimizing"
+            ? "Optimizing with AI..."
+            : "Optimize Route with AI"}
         </Button>
       </div>
     </div>

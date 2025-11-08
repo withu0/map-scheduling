@@ -1,65 +1,153 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import type { Job, MapboxRoute } from '@/lib/types';
-import { initialJobsA, initialJobsB, candidateJobs } from '@/lib/mock-data';
-import { getDirections } from '@/lib/mapbox';
-import { optimizeRouteWithLLM } from '@/ai/flows/optimize-route-with-llm';
-import type { OptimizeRouteInput } from '@/ai/flows/optimize-route-with-llm';
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
+import { useState, useEffect, useMemo } from "react";
+import type { Job, MapboxRoute } from "@/lib/types";
+import {
+  initialJobsA,
+  initialJobsB,
+  initialJobsC,
+  initialJobsD,
+  candidateJobs,
+} from "@/lib/mock-data";
+import { getDirections } from "@/lib/mapbox";
+import { optimizeRouteWithLLM } from "@/ai/flows/optimize-route-with-llm";
+import type { OptimizeRouteInput } from "@/ai/flows/optimize-route-with-llm";
+import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { format } from "date-fns";
 
-import { Header } from '@/components/header';
-import { JobPanel } from '@/components/job-panel';
-import { MapDisplay } from '@/components/map-display';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { List, Terminal, ArrowLeftRight } from 'lucide-react';
+import { Header } from "@/components/header";
+import { JobPanel } from "@/components/job-panel";
+import { MapDisplay } from "@/components/map-display";
+import { JobDetailModal } from "@/components/job-detail-modal";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { DatePicker } from "@/components/ui/date-picker";
+import { List, Terminal } from "lucide-react";
 
 type RouteState = {
   jobs: Job[];
   route: MapboxRoute | null;
-  status: 'idle' | 'loading' | 'optimizing';
+  status: "idle" | "loading" | "optimizing";
+};
+
+// Collect all jobs from all sources
+const allInitialJobs = [
+  ...initialJobsA,
+  ...initialJobsB,
+  ...initialJobsC,
+  ...initialJobsD,
+];
+
+// Get jobs by date - filters all jobs by their date field
+// Only includes jobs from initial sets (not candidateJobs, which are added manually)
+const getJobsByDate = (date: string): Job[] => {
+  // Filter all initial jobs that match the date
+  return allInitialJobs.filter((job) => job.date === date);
 };
 
 export default function Home() {
-  const [routeA, setRouteA] = useState<RouteState>({ jobs: initialJobsA, route: null, status: 'idle' });
-  const [routeB, setRouteB] = useState<RouteState>({ jobs: initialJobsB, route: null, status: 'idle' });
-  const [activeRoute, setActiveRoute] = useState<'A' | 'B'>('A');
-  
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    new Date("2024-11-10")
+  );
+  const selectedDateString = format(selectedDate, "yyyy-MM-dd");
+
+  // Initialize routes for all dates
+  const [routesByDate, setRoutesByDate] = useState<Map<string, RouteState>>(
+    () => {
+      const map = new Map<string, RouteState>();
+      const dates = ["2024-11-10", "2024-11-11", "2024-11-12", "2024-11-13"];
+      dates.forEach((date) => {
+        const jobs = getJobsByDate(date);
+        map.set(date, {
+          jobs: jobs,
+          route: null,
+          status: "idle",
+        });
+      });
+      return map;
+    }
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const { toast } = useToast();
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  
-  const { jobs, route, status } = activeRoute === 'A' ? routeA : routeB;
-  const setJobs = (newJobs: Job[] | ((prevJobs: Job[]) => Job[])) => {
-    const setter = activeRoute === 'A' ? setRouteA : setRouteB;
-    setter(prev => ({ ...prev, jobs: typeof newJobs === 'function' ? newJobs(prev.jobs) : newJobs }));
-  };
-  const setRoute = (newRoute: MapboxRoute | null) => {
-    const setter = activeRoute === 'A' ? setRouteA : setRouteB;
-    setter(prev => ({ ...prev, route: newRoute }));
-  };
-  const setStatus = (newStatus: 'idle' | 'loading' | 'optimizing') => {
-    const setter = activeRoute === 'A' ? setRouteA : setRouteB;
-    setter(prev => ({ ...prev, status: newStatus }));
+
+  const currentRoute = routesByDate.get(selectedDateString) || {
+    jobs: [],
+    route: null,
+    status: "idle" as const,
   };
 
-  const jobOrderKey = useMemo(() => jobs.map(j => j.id).join(','), [jobs]);
-  
+  const { jobs, route, status } = currentRoute;
+
+  const setJobs = (newJobs: Job[] | ((prevJobs: Job[]) => Job[])) => {
+    setRoutesByDate((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(selectedDateString) || {
+        jobs: [],
+        route: null,
+        status: "idle" as const,
+      };
+      const updatedJobs =
+        typeof newJobs === "function" ? newJobs(current.jobs) : newJobs;
+      newMap.set(selectedDateString, {
+        ...current,
+        jobs: updatedJobs,
+      });
+      return newMap;
+    });
+  };
+
+  const setRoute = (newRoute: MapboxRoute | null) => {
+    setRoutesByDate((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(selectedDateString) || {
+        jobs: [],
+        route: null,
+        status: "idle" as const,
+      };
+      newMap.set(selectedDateString, {
+        ...current,
+        route: newRoute,
+      });
+      return newMap;
+    });
+  };
+
+  const setStatus = (newStatus: "idle" | "loading" | "optimizing") => {
+    setRoutesByDate((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(selectedDateString) || {
+        jobs: [],
+        route: null,
+        status: "idle" as const,
+      };
+      newMap.set(selectedDateString, {
+        ...current,
+        status: newStatus,
+      });
+      return newMap;
+    });
+  };
+
+  const jobOrderKey = useMemo(() => jobs.map((j) => j.id).join(","), [jobs]);
+
   const jobsWithEtas = useMemo(() => {
     if (!route) return jobs;
 
     let cumulativeDuration = 0;
-    const startTimeStr = jobs.length > 0 ? jobs[0].scheduledTime : '09:00 AM';
-    const [time, modifier] = startTimeStr.split(' ');
-    let [hours, minutes] = time.split(':').map(Number);
-    if (modifier === 'PM' && hours < 12) hours += 12;
-    if (modifier === 'AM' && hours === 12) hours = 0;
+    const startTimeStr = jobs.length > 0 ? jobs[0].scheduledTime : "09:00 AM";
+    const [time, modifier] = startTimeStr.split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+    if (modifier === "PM" && hours < 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
 
     const startTime = new Date();
     startTime.setHours(hours, minutes, 0, 0);
@@ -68,15 +156,23 @@ export default function Home() {
       if (index > 0 && route.legs.length > index - 1) {
         cumulativeDuration += route.legs[index - 1].duration;
       }
-      const arrivalDate = new Date(startTime.getTime() + cumulativeDuration * 1000);
-      const estimatedArrivalTime = arrivalDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const arrivalDate = new Date(
+        startTime.getTime() + cumulativeDuration * 1000
+      );
+      const estimatedArrivalTime = arrivalDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
       return { ...job, estimatedArrivalTime };
     });
   }, [jobs, route]);
 
   useEffect(() => {
     if (!mapboxToken) {
-      setError("Mapbox access token is not configured. Please add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to your .env file.");
+      setError(
+        "Mapbox access token is not configured. Please add NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to your .env file."
+      );
       return;
     }
 
@@ -84,9 +180,9 @@ export default function Home() {
       if (jobs.length < 2) {
         setRoute(null);
         return;
-      };
-      
-      setStatus('loading');
+      }
+
+      setStatus("loading");
       setError(null);
       try {
         const newRoute = await getDirections(jobs);
@@ -96,7 +192,8 @@ export default function Home() {
           setRoute(null);
         }
       } catch (e: any) {
-        const errorMessage = e.message || "Failed to fetch route data from Mapbox.";
+        const errorMessage =
+          e.message || "Failed to fetch route data from Mapbox.";
         setError(errorMessage);
         toast({
           variant: "destructive",
@@ -104,44 +201,46 @@ export default function Home() {
           description: errorMessage,
         });
       } finally {
-        if (status !== 'optimizing') {
-          setStatus('idle');
+        if (status !== "optimizing") {
+          setStatus("idle");
         }
       }
     };
 
     fetchRoute();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobOrderKey, mapboxToken, activeRoute]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobOrderKey, mapboxToken, selectedDateString]);
 
   const handleOptimizeRoute = async () => {
-    if (status !== 'idle' || jobs.length < 2) return;
-    
-    setStatus('optimizing');
+    if (status !== "idle" || jobs.length < 2) return;
+
+    setStatus("optimizing");
     setError(null);
 
     const optimizeInput: OptimizeRouteInput = {
-      jobList: jobsWithEtas.map(j => ({
+      jobList: jobsWithEtas.map((j) => ({
         id: j.id,
         customerName: j.customerName,
         address: j.address,
         scheduledTime: j.scheduledTime,
         estimatedArrivalTime: j.estimatedArrivalTime || j.scheduledTime,
-      }))
+      })),
     };
 
     try {
       const result = await optimizeRouteWithLLM(optimizeInput);
-      const optimizedIds = result.optimizedJobList.map(j => j.id);
+      const optimizedIds = result.optimizedJobList.map((j) => j.id);
 
-      const jobMap = new Map(jobs.map(j => [j.id, j]));
-      const reorderedJobs = optimizedIds.map(id => jobMap.get(id)!).filter(Boolean);
+      const jobMap = new Map(jobs.map((j) => [j.id, j]));
+      const reorderedJobs = optimizedIds
+        .map((id) => jobMap.get(id)!)
+        .filter(Boolean);
 
-      if(reorderedJobs.length === jobs.length) {
+      if (reorderedJobs.length === jobs.length) {
         setJobs(reorderedJobs);
         toast({
           title: "Route Optimized!",
-          description: `Route ${activeRoute} has been updated for maximum efficiency.`,
+          description: `Route has been updated for maximum efficiency.`,
         });
       } else {
         throw new Error("AI optimization returned a different number of jobs.");
@@ -155,109 +254,164 @@ export default function Home() {
         description: errorMessage,
       });
     } finally {
-      setStatus('idle');
+      setStatus("idle");
     }
   };
-  
+
   const handleAddJob = (jobId: string) => {
-    const jobToAdd = candidateJobs.find(j => j.id === jobId);
-    if (jobToAdd && !jobs.find(j => j.id === jobId)) {
-      setJobs(prevJobs => [...prevJobs, jobToAdd]);
+    const jobToAdd = candidateJobs.find((j) => j.id === jobId);
+    if (jobToAdd && !jobs.find((j) => j.id === jobId)) {
+      // Update the job's date to match the selected date
+      const jobWithDate = { ...jobToAdd, date: selectedDateString };
+      setJobs((prevJobs) => [...prevJobs, jobWithDate]);
       toast({
         title: "Job Added",
-        description: `${jobToAdd.customerName} has been added to Route ${activeRoute}.`
+        description: `${jobToAdd.customerName} has been added to the route.`,
       });
     } else if (jobToAdd) {
       toast({
         variant: "destructive",
         title: "Job Already Exists",
-        description: `${jobToAdd.customerName} is already in the route.`
+        description: `${jobToAdd.customerName} is already in the route.`,
       });
     }
-  };
-
-  const switchRoute = () => {
-    setActiveRoute(prev => prev === 'A' ? 'B' : 'A');
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       setJobs((items) => {
-        const oldIndex = items.findIndex(item => item.id === active.id);
-        const newIndex = items.findIndex(item => item.id === over.id);
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
     }
   };
 
+  const handleJobClick = (job: Job) => {
+    setSelectedJob(job);
+    setIsJobModalOpen(true);
+  };
+
+  // Filter candidate jobs - exclude jobs already in the route for the selected date
+  const availableCandidateJobs = useMemo(() => {
+    return candidateJobs.filter(
+      (cj) => !currentRoute.jobs.some((j) => j.id === cj.id)
+    );
+  }, [currentRoute, candidateJobs]);
+
+  // Get all dates that have jobs
+  const datesWithJobs = useMemo(() => {
+    return Array.from(routesByDate.entries())
+      .filter(([_, routeState]) => routeState.jobs.length > 0)
+      .map(([dateStr]) => dateStr);
+  }, [routesByDate]);
+
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="flex flex-col h-screen bg-background text-foreground font-body">
         <Header />
+        <div className="border-b px-4 py-2 flex items-center justify-between bg-card">
+          <DatePicker
+            date={selectedDate}
+            onDateChange={(date) => {
+              if (date) {
+                setSelectedDate(date);
+                const dateStr = format(date, "yyyy-MM-dd");
+
+                // Initialize routes for the date if they don't exist
+                setRoutesByDate((prev) => {
+                  if (!prev.has(dateStr)) {
+                    const newMap = new Map(prev);
+                    const jobs = getJobsByDate(dateStr);
+                    newMap.set(dateStr, {
+                      jobs: jobs,
+                      route: null,
+                      status: "idle" as const,
+                    });
+                    return newMap;
+                  }
+                  return prev;
+                });
+              }
+            }}
+            datesWithJobs={datesWithJobs}
+          />
+          <div className="text-sm text-muted-foreground">
+            {format(selectedDate, "EEEE, MMMM d, yyyy")}
+          </div>
+        </div>
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 min-h-0">
           <div className="hidden lg:flex lg:flex-col lg:col-span-1 xl:col-span-1 h-full border-r">
-            <JobPanel 
-              jobs={jobsWithEtas} 
-              route={route} 
-              status={status} 
-              onOptimize={handleOptimizeRoute} 
-              routeName={activeRoute}
-              onSwitchRoute={switchRoute}
-              candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
+            <JobPanel
+              jobs={jobsWithEtas}
+              route={route}
+              status={status}
+              onOptimize={handleOptimizeRoute}
+              candidateJobs={availableCandidateJobs}
               onAddJob={handleAddJob}
+              selectedDate={selectedDateString}
+              onJobClick={handleJobClick}
             />
           </div>
-          
+
           <div className="col-span-1 lg:col-span-2 xl:col-span-3 h-full relative">
-              {error && !mapboxToken && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-                   <Alert variant="destructive" className="max-w-md shadow-lg">
-                      <Terminal className="h-4 w-4" />
-                      <AlertTitle>Configuration Error</AlertTitle>
-                      <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                </div>
-              )}
-              <MapDisplay mapboxToken={mapboxToken || ''} jobs={jobs} route={route} status={status} />
+            {error && !mapboxToken && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                <Alert variant="destructive" className="max-w-md shadow-lg">
+                  <Terminal className="h-4 w-4" />
+                  <AlertTitle>Configuration Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </div>
+            )}
+            <MapDisplay
+              mapboxToken={mapboxToken || ""}
+              jobs={jobs}
+              route={route}
+              status={status}
+            />
           </div>
-          
+
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-              <SheetContent side="left" className="p-0 w-[350px] sm:w-[400px]">
-                <JobPanel 
-                  jobs={jobsWithEtas} 
-                  route={route} 
-                  status={status} 
-                  onOptimize={() => {
-                    handleOptimizeRoute();
-                    setIsSheetOpen(false);
-                  }}
-                  routeName={activeRoute}
-                  onSwitchRoute={() => {
-                    switchRoute();
-                    setIsSheetOpen(false);
-                  }}
-                  candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
-                  onAddJob={(jobId) => {
-                    handleAddJob(jobId)
-                    setIsSheetOpen(false);
-                  }}
-                />
-              </SheetContent>
+            <SheetContent side="left" className="p-0 w-[350px] sm:w-[400px]">
+              <JobPanel
+                jobs={jobsWithEtas}
+                route={route}
+                status={status}
+                onOptimize={() => {
+                  handleOptimizeRoute();
+                  setIsSheetOpen(false);
+                }}
+                candidateJobs={availableCandidateJobs}
+                onAddJob={(jobId) => {
+                  handleAddJob(jobId);
+                  setIsSheetOpen(false);
+                }}
+                selectedDate={selectedDateString}
+                onJobClick={handleJobClick}
+              />
+            </SheetContent>
           </Sheet>
         </main>
 
-        <div className="lg:hidden absolute bottom-6 right-6 z-10 flex flex-col gap-4">
-          <Button onClick={switchRoute} size="icon" className="rounded-full h-14 w-14 shadow-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-transform hover:scale-105 active:scale-95">
-            <ArrowLeftRight className="h-6 w-6" />
-            <span className="sr-only">Switch Route</span>
-          </Button>
-          <Button onClick={() => setIsSheetOpen(true)} size="icon" className="rounded-full h-16 w-16 shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95">
+        <div className="lg:hidden absolute bottom-6 right-6 z-10">
+          <Button
+            onClick={() => setIsSheetOpen(true)}
+            size="icon"
+            className="rounded-full h-16 w-16 shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
+          >
             <List className="h-7 w-7" />
             <span className="sr-only">Open Job List</span>
           </Button>
         </div>
       </div>
+
+      <JobDetailModal
+        job={selectedJob}
+        open={isJobModalOpen}
+        onOpenChange={setIsJobModalOpen}
+      />
     </DndContext>
   );
 }
