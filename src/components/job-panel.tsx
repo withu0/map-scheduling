@@ -103,7 +103,7 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
           className="w-full font-semibold bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent"
         >
           {status === 'optimizing' && <Bot className="w-5 h-5 mr-2 animate-pulse" />}
-          {status === 'optimizing' ? 'Optimizing with AI...' : `Recalculate Optimal Route ${routeName}`}
+          {status === 'optimizing' ? 'Optimizing with AI...' : `Optimize Route ${routeName} with AI`}
         </Button>
       </div>
     </div>

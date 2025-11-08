@@ -151,6 +151,7 @@ export default function Home() {
         title: "Optimization Failed",
         description: errorMessage,
       });
+    } finally {
       setStatus('idle');
     }
   };
