@@ -22,7 +22,7 @@ const routeLayer: any = {
     'line-cap': 'round'
   },
   paint: {
-    'line-color': 'hsl(var(--accent))',
+    'line-color': '#FF5722', // Use explicit color for mapbox
     'line-width': 5,
     'line-opacity': 0.9
   }
