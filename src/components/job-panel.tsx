@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Hourglass, Loader, Route as RouteIcon, Bot, ArrowLeftRight, PlusCircle } from 'lucide-react';
 import { JobCard } from './job-card';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface JobPanelProps {
   jobs: Job[];
@@ -33,6 +34,8 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
     }
   };
 
+  const jobIds = React.useMemo(() => jobs.map(j => j.id), [jobs]);
+
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="p-4 border-b">
@@ -50,9 +53,11 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-3">
-          {jobs.map((job, index) => (
-            <JobCard key={job.id} job={job} index={index} />
-          ))}
+          <SortableContext items={jobIds} strategy={verticalListSortingStrategy}>
+            {jobs.map((job, index) => (
+              <JobCard key={job.id} job={job} index={index} />
+            ))}
+          </SortableContext>
         </div>
       </ScrollArea>
       
@@ -99,7 +104,7 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
         <Separator className="my-4" />
         <Button
           onClick={onOptimize}
-          disabled={status !== 'idle'}
+          disabled={status !== 'idle' || jobs.length < 2}
           className="w-full font-semibold bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent"
         >
           {status === 'optimizing' && <Bot className="w-5 h-5 mr-2 animate-pulse" />}

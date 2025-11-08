@@ -6,6 +6,8 @@ import { initialJobsA, initialJobsB, candidateJobs } from '@/lib/mock-data';
 import { getDirections } from '@/lib/mapbox';
 import { optimizeRouteWithLLM } from '@/ai/flows/optimize-route-with-llm';
 import type { OptimizeRouteInput } from '@/ai/flows/optimize-route-with-llm';
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 
 import { Header } from '@/components/header';
 import { JobPanel } from '@/components/job-panel';
@@ -92,7 +94,6 @@ export default function Home() {
           setRoute(newRoute);
         } else {
           setRoute(null);
-          // throw new Error("No route found between the given points.");
         }
       } catch (e: any) {
         const errorMessage = e.message || "Failed to fetch route data from Mapbox.";
@@ -103,7 +104,9 @@ export default function Home() {
           description: errorMessage,
         });
       } finally {
-        setStatus('idle');
+        if (status !== 'optimizing') {
+          setStatus('idle');
+        }
       }
     };
 
@@ -177,71 +180,84 @@ export default function Home() {
     setActiveRoute(prev => prev === 'A' ? 'B' : 'A');
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-background text-foreground font-body">
-      <Header />
-      <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 min-h-0">
-        <div className="hidden lg:flex lg:flex-col lg:col-span-1 xl:col-span-1 h-full border-r">
-          <JobPanel 
-            jobs={jobsWithEtas} 
-            route={route} 
-            status={status} 
-            onOptimize={handleOptimizeRoute} 
-            routeName={activeRoute}
-            onSwitchRoute={switchRoute}
-            candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
-            onAddJob={handleAddJob}
-          />
-        </div>
-        
-        <div className="col-span-1 lg:col-span-2 xl:col-span-3 h-full relative">
-            {error && !mapboxToken && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-                 <Alert variant="destructive" className="max-w-md shadow-lg">
-                    <Terminal className="h-4 w-4" />
-                    <AlertTitle>Configuration Error</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </div>
-            )}
-            <MapDisplay mapboxToken={mapboxToken || ''} jobs={jobs} route={route} status={status} />
-        </div>
-        
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-            <SheetContent side="left" className="p-0 w-[350px] sm:w-[400px]">
-              <JobPanel 
-                jobs={jobsWithEtas} 
-                route={route} 
-                status={status} 
-                onOptimize={() => {
-                  handleOptimizeRoute();
-                  setIsSheetOpen(false);
-                }}
-                routeName={activeRoute}
-                onSwitchRoute={() => {
-                  switchRoute();
-                  setIsSheetOpen(false);
-                }}
-                candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
-                onAddJob={(jobId) => {
-                  handleAddJob(jobId)
-                  setIsSheetOpen(false);
-                }}
-              />
-            </SheetContent>
-        </Sheet>
-      </main>
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setJobs((items) => {
+        const oldIndex = items.findIndex(item => item.id === active.id);
+        const newIndex = items.findIndex(item => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
-      <div className="lg:hidden absolute bottom-6 right-6 z-10 flex flex-col gap-4">
-        <Button onClick={switchRoute} size="icon" className="rounded-full h-14 w-14 shadow-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-transform hover:scale-105 active:scale-95">
-          <ArrowLeftRight className="h-6 w-6" />
-          <span className="sr-only">Switch Route</span>
-        </Button>
-        <Button onClick={() => setIsSheetOpen(true)} size="icon" className="rounded-full h-16 w-16 shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95">
-          <List className="h-7 w-7" />
-          <span className="sr-only">Open Job List</span>
-        </Button>
+  return (
+    <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <div className="flex flex-col h-screen bg-background text-foreground font-body">
+        <Header />
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 min-h-0">
+          <div className="hidden lg:flex lg:flex-col lg:col-span-1 xl:col-span-1 h-full border-r">
+            <JobPanel 
+              jobs={jobsWithEtas} 
+              route={route} 
+              status={status} 
+              onOptimize={handleOptimizeRoute} 
+              routeName={activeRoute}
+              onSwitchRoute={switchRoute}
+              candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
+              onAddJob={handleAddJob}
+            />
+          </div>
+          
+          <div className="col-span-1 lg:col-span-2 xl:col-span-3 h-full relative">
+              {error && !mapboxToken && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                   <Alert variant="destructive" className="max-w-md shadow-lg">
+                      <Terminal className="h-4 w-4" />
+                      <AlertTitle>Configuration Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              <MapDisplay mapboxToken={mapboxToken || ''} jobs={jobs} route={route} status={status} />
+          </div>
+          
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+              <SheetContent side="left" className="p-0 w-[350px] sm:w-[400px]">
+                <JobPanel 
+                  jobs={jobsWithEtas} 
+                  route={route} 
+                  status={status} 
+                  onOptimize={() => {
+                    handleOptimizeRoute();
+                    setIsSheetOpen(false);
+                  }}
+                  routeName={activeRoute}
+                  onSwitchRoute={() => {
+                    switchRoute();
+                    setIsSheetOpen(false);
+                  }}
+                  candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
+                  onAddJob={(jobId) => {
+                    handleAddJob(jobId)
+                    setIsSheetOpen(false);
+                  }}
+                />
+              </SheetContent>
+          </Sheet>
+        </main>
+
+        <div className="lg:hidden absolute bottom-6 right-6 z-10 flex flex-col gap-4">
+          <Button onClick={switchRoute} size="icon" className="rounded-full h-14 w-14 shadow-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-transform hover:scale-105 active:scale-95">
+            <ArrowLeftRight className="h-6 w-6" />
+            <span className="sr-only">Switch Route</span>
+          </Button>
+          <Button onClick={() => setIsSheetOpen(true)} size="icon" className="rounded-full h-16 w-16 shadow-lg bg-primary hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95">
+            <List className="h-7 w-7" />
+            <span className="sr-only">Open Job List</span>
+          </Button>
+        </div>
       </div>
-    </div>
+    </DndContext>
   );
 }
