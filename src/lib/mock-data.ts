@@ -24,10 +24,10 @@ export const initialJobsA: Job[] = [
   },
   {
     id: 'job-4',
-    customerName: 'Golden Gate Bridge Pavilion',
-    address: 'Golden Gate Bridge, San Francisco, CA 94129',
+    customerName: 'Alamo Square Park',
+    address: 'Steiner St & Hayes St, San Francisco, CA 94117',
     scheduledTime: '01:00 PM',
-    coordinates: [-122.4784, 37.8078],
+    coordinates: [-122.433, 37.776],
   },
   {
     id: 'job-5',
