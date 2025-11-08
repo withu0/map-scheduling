@@ -1,6 +1,6 @@
 import type { Job } from './types';
 
-export const initialJobs: Job[] = [
+export const initialJobsA: Job[] = [
   {
     id: 'job-1',
     customerName: 'Ferry Building Marketplace',
@@ -36,6 +36,9 @@ export const initialJobs: Job[] = [
     scheduledTime: '02:30 PM',
     coordinates: [-122.4475, 37.7545],
   },
+];
+
+export const initialJobsB: Job[] = [
   {
     id: 'job-6',
     customerName: 'Alcatraz Island',
@@ -72,3 +75,5 @@ export const initialJobs: Job[] = [
     coordinates: [-122.468, 37.771],
   },
 ];
+
+export const initialJobs = [...initialJobsA, ...initialJobsB];
