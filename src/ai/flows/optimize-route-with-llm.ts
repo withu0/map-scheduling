@@ -49,21 +49,27 @@ const prompt = ai.definePrompt({
   name: 'optimizeRoutePrompt',
   input: {schema: OptimizeRouteInputSchema},
   output: {schema: OptimizeRouteOutputSchema},
-  prompt: `You are an expert route optimization specialist. Given a list of jobs with their details and estimated arrival times, determine the optimal order of the jobs to minimize travel time and resource usage.
+  prompt: `You are an expert route optimization specialist. Your primary goal is to reorder a list of jobs to create the most efficient route possible, minimizing both total travel time and distance.
+
+  You will be given a list of jobs with their details, including scheduled times and, if available, estimated arrival times (ETAs) based on the current order.
+
+  Use the job addresses and scheduled times to determine the optimal sequence. Pay close attention to the geographical location of each address to minimize travel between stops. While adhering to scheduled times is important, your main objective is to find the shortest and quickest route.
 
   JobList:
   {{#each jobList}}
-  - ID: {{id}}, Customer: {{customerName}}, Address: {{address}}, Scheduled Time: {{scheduledTime}}{{#if estimatedArrivalTime}}, ETA: {{estimatedArrivalTime}}{{/if}}
+  - ID: {{id}}, Customer: {{customerName}}, Address: {{address}}, Scheduled: {{scheduledTime}}{{#if estimatedArrivalTime}}, Current ETA: {{estimatedArrivalTime}}{{/if}}
   {{/each}}
 
-  Based on the estimated arrival times and scheduled times, reorder the jobs to create an optimized route. Consider factors like minimizing distance, reducing idle time, and adhering to scheduled time constraints.
+  Your task:
+  1. Analyze the list of jobs.
+  2. Reorder the jobs to create an optimized route that minimizes travel distance and time.
+  3. Return the reordered list of jobs as a valid JSON object.
 
-  Return the optimized job list in the same format as the input.
-  Make sure the the ID field remains the same, as it is used as a lookup key.
-  Make sure that you include estimated arrival times in the output, if they are present in the input.
-  Make sure that the order of elements is the only thing that changes.
-  Do not make any modifications to the address, customer name, or scheduled time.
-  Do not add any other commentary or explanation, return ONLY valid JSON.
+  Important constraints:
+  - The output must be ONLY the JSON object for 'optimizedJobList'.
+  - Do not change the content of any job object (id, customerName, address, etc.). Only change the order of the jobs in the array.
+  - The ID field must remain unchanged as it is a unique identifier.
+  - If the input included estimated arrival times, you must also include them in your output for each job.
   `,
 });
 
