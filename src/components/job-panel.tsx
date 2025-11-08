@@ -1,11 +1,13 @@
 "use client";
 
+import * as React from 'react';
 import type { Job, MapboxRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Hourglass, Loader, Route as RouteIcon, Bot, ArrowLeftRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Hourglass, Loader, Route as RouteIcon, Bot, ArrowLeftRight, PlusCircle } from 'lucide-react';
 import { JobCard } from './job-card';
 
 interface JobPanelProps {
@@ -15,11 +17,21 @@ interface JobPanelProps {
   onOptimize: () => void;
   routeName: 'A' | 'B';
   onSwitchRoute: () => void;
+  candidateJobs: Job[];
+  onAddJob: (jobId: string) => void;
 }
 
-export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchRoute }: JobPanelProps) {
+export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchRoute, candidateJobs, onAddJob }: JobPanelProps) {
   const totalDistance = route ? route.distance / 1000 : 0; // meters to km
   const totalDuration = route ? route.duration / 60 : 0; // seconds to minutes
+  const [selectedCandidate, setSelectedCandidate] = React.useState('');
+
+  const handleAddJob = () => {
+    if (selectedCandidate) {
+      onAddJob(selectedCandidate);
+      setSelectedCandidate('');
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -43,6 +55,26 @@ export function JobPanel({ jobs, route, status, onOptimize, routeName, onSwitchR
           ))}
         </div>
       </ScrollArea>
+      
+      <div className="p-4 border-t">
+        <h3 className="mb-2 font-semibold text-md">Add a Job</h3>
+        <div className="flex gap-2">
+          <Select value={selectedCandidate} onValueChange={setSelectedCandidate}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a location..." />
+            </SelectTrigger>
+            <SelectContent>
+              {candidateJobs.map(job => (
+                <SelectItem key={job.id} value={job.id}>{job.customerName}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleAddJob} disabled={!selectedCandidate || status !== 'idle'} variant="outline" size="icon">
+            <PlusCircle className="w-5 h-5" />
+            <span className="sr-only">Add Job</span>
+          </Button>
+        </div>
+      </div>
 
       <div className="p-4 mt-auto border-t bg-card">
         <div className="space-y-4">

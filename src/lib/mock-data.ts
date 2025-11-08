@@ -76,4 +76,35 @@ export const initialJobsB: Job[] = [
   },
 ];
 
+export const candidateJobs: Job[] = [
+  {
+    id: 'candidate-1',
+    customerName: 'California Academy of Sciences',
+    address: '55 Music Concourse Dr, San Francisco, CA 94118',
+    scheduledTime: '04:00 PM',
+    coordinates: [-122.466, 37.77],
+  },
+  {
+    id: 'candidate-2',
+    customerName: 'Fisherman\'s Wharf',
+    address: 'Jefferson St, San Francisco, CA 94133',
+    scheduledTime: '04:00 PM',
+    coordinates: [-122.417, 37.808],
+  },
+  {
+    id: 'candidate-3',
+    customerName: 'Sutro Baths',
+    address: '1004 Point Lobos Ave, San Francisco, CA 94121',
+    scheduledTime: '04:00 PM',
+    coordinates: [-122.514, 37.78],
+  },
+  {
+    id: 'candidate-4',
+    customerName: 'Golden Gate Bridge Pavilion',
+    address: 'Golden Gate Bridge, San Francisco, CA 94129',
+    scheduledTime: '04:00 PM',
+    coordinates: [-122.4783, 37.8079]
+  }
+];
+
 export const initialJobs = [...initialJobsA, ...initialJobsB];

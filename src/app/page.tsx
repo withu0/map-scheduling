@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import type { Job, MapboxRoute } from '@/lib/types';
-import { initialJobsA, initialJobsB } from '@/lib/mock-data';
+import { initialJobsA, initialJobsB, candidateJobs } from '@/lib/mock-data';
 import { getDirections } from '@/lib/mapbox';
 import { optimizeRouteWithLLM } from '@/ai/flows/optimize-route-with-llm';
 import type { OptimizeRouteInput } from '@/ai/flows/optimize-route-with-llm';
@@ -154,6 +154,23 @@ export default function Home() {
       setStatus('idle');
     }
   };
+  
+  const handleAddJob = (jobId: string) => {
+    const jobToAdd = candidateJobs.find(j => j.id === jobId);
+    if (jobToAdd && !jobs.find(j => j.id === jobId)) {
+      setJobs(prevJobs => [...prevJobs, jobToAdd]);
+      toast({
+        title: "Job Added",
+        description: `${jobToAdd.customerName} has been added to Route ${activeRoute}.`
+      });
+    } else if (jobToAdd) {
+      toast({
+        variant: "destructive",
+        title: "Job Already Exists",
+        description: `${jobToAdd.customerName} is already in the route.`
+      });
+    }
+  };
 
   const switchRoute = () => {
     setActiveRoute(prev => prev === 'A' ? 'B' : 'A');
@@ -171,6 +188,8 @@ export default function Home() {
             onOptimize={handleOptimizeRoute} 
             routeName={activeRoute}
             onSwitchRoute={switchRoute}
+            candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
+            onAddJob={handleAddJob}
           />
         </div>
         
@@ -200,6 +219,11 @@ export default function Home() {
                 routeName={activeRoute}
                 onSwitchRoute={() => {
                   switchRoute();
+                  setIsSheetOpen(false);
+                }}
+                candidateJobs={candidateJobs.filter(cj => !jobs.some(j => j.id === cj.id))}
+                onAddJob={(jobId) => {
+                  handleAddJob(jobId)
                   setIsSheetOpen(false);
                 }}
               />
