@@ -22,7 +22,7 @@ const routeLayer: any = {
     'line-cap': 'round'
   },
   paint: {
-    'line-color': '#FF5722', // Use explicit color for mapbox
+    'line-color': '#FF5722',
     'line-width': 5,
     'line-opacity': 0.9
   }
@@ -89,13 +89,6 @@ export function MapDisplay({ mapboxToken, jobs, route, status }: MapDisplayProps
               <div className="flex items-center justify-center w-8 h-8 font-bold text-white border-2 border-white rounded-full shadow-lg bg-primary">
                 {index + 1}
               </div>
-              <div style={{
-                width: 0,
-                height: 0,
-                borderLeft: '6px solid transparent',
-                borderRight: '6px solid transparent',
-                borderTop: '8px solid hsl(var(--primary))'
-              }}/>
             </div>
           </Marker>
         ))}
