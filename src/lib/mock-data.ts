@@ -16,11 +16,11 @@ export const initialJobsA: Job[] = [
     coordinates: [-122.4058, 37.8024],
   },
   {
-    id: 'job-3',
-    customerName: 'Palace of Fine Arts',
-    address: '3601 Lyon St, San Francisco, CA 94123',
-    scheduledTime: '11:30 AM',
-    coordinates: [-122.4486, 37.8021],
+    id: 'job-4',
+    customerName: 'Alamo Square Park',
+    address: 'Steiner St & Hayes St, San Francisco, CA 94117',
+    scheduledTime: '01:00 PM',
+    coordinates: [-122.433, 37.776],
   },
   {
     id: 'job-1',
@@ -30,22 +30,15 @@ export const initialJobsA: Job[] = [
     coordinates: [-122.3932, 37.7956],
   },
   {
-    id: 'job-4',
-    customerName: 'Alamo Square Park',
-    address: 'Steiner St & Hayes St, San Francisco, CA 94117',
-    scheduledTime: '01:00 PM',
-    coordinates: [-122.433, 37.776],
+    id: 'job-3',
+    customerName: 'Palace of Fine Arts',
+    address: '3601 Lyon St, San Francisco, CA 94123',
+    scheduledTime: '11:30 AM',
+    coordinates: [-122.4486, 37.8021],
   },
 ];
 
 export const initialJobsB: Job[] = [
-  {
-    id: 'job-9',
-    customerName: 'Oracle Park',
-    address: '24 Willie Mays Plaza, San Francisco, CA 94107',
-    scheduledTime: '01:30 PM',
-    coordinates: [-122.389, 37.778],
-  },
   {
     id: 'job-10',
     customerName: 'de Young Museum',
@@ -66,6 +59,13 @@ export const initialJobsB: Job[] = [
     address: '900 North Point St, San Francisco, CA 94109',
     scheduledTime: '12:00 PM',
     coordinates: [-122.422, 37.806],
+  },
+  {
+    id: 'job-9',
+    customerName: 'Oracle Park',
+    address: '24 Willie Mays Plaza, San Francisco, CA 94107',
+    scheduledTime: '01:30 PM',
+    coordinates: [-122.389, 37.778],
   },
   {
     id: 'job-7',
