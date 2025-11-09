@@ -4,7 +4,6 @@ import * as React from "react";
 import type { Job, MapboxRoute } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -61,8 +60,8 @@ export function JobPanel({
   const jobIds = React.useMemo(() => jobs.map((j) => j.id), [jobs]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="p-4 border-b">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
+      <div className="p-4 border-b shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold font-headline">
@@ -77,25 +76,25 @@ export function JobPanel({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="p-2 space-y-1.5">
           <SortableContext
             items={jobIds}
             strategy={verticalListSortingStrategy}
           >
             {jobs.map((job, index) => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                index={index} 
+              <JobCard
+                key={job.id}
+                job={job}
+                index={index}
                 onJobClick={onJobClick}
               />
             ))}
           </SortableContext>
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t shrink-0">
         <h3 className="mb-2 font-semibold text-md">Add a Job</h3>
         <div className="flex gap-2">
           <Select

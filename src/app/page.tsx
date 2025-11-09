@@ -309,9 +309,9 @@ export default function Home() {
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-screen bg-background text-foreground font-body">
+      <div className="flex flex-col h-screen bg-background text-foreground font-body overflow-hidden">
         <Header />
-        <div className="border-b px-4 py-2 flex items-center justify-between bg-card">
+        <div className="border-b px-4 py-2 flex items-center justify-between bg-card shrink-0">
           <DatePicker
             date={selectedDate}
             onDateChange={(date) => {
@@ -337,12 +337,12 @@ export default function Home() {
             }}
             datesWithJobs={datesWithJobs}
           />
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground hidden sm:block">
             {format(selectedDate, "EEEE, MMMM d, yyyy")}
           </div>
         </div>
-        <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 min-h-0">
-          <div className="hidden lg:flex lg:flex-col lg:col-span-1 xl:col-span-1 h-full border-r">
+        <main className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[380px_1fr] min-h-0 overflow-hidden">
+          <div className="hidden lg:flex lg:flex-col h-full border-r overflow-hidden">
             <JobPanel
               jobs={jobsWithEtas}
               route={route}
@@ -355,7 +355,7 @@ export default function Home() {
             />
           </div>
 
-          <div className="col-span-1 lg:col-span-2 xl:col-span-3 h-full relative">
+          <div className="col-span-1 h-full relative overflow-hidden">
             {error && !mapboxToken && (
               <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
                 <Alert variant="destructive" className="max-w-md shadow-lg">
